@@ -2,7 +2,6 @@ import { Module } from '@nestjs/common';
 import { SearchModule } from './search/search.module';
 import { ConfigModule } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { LogsModule } from './logs/logs.module';
 
 @Module({
   imports: [
@@ -20,8 +19,6 @@ import { LogsModule } from './logs/logs.module';
     }),
 
     SearchModule,
-
-    LogsModule
   ],
   controllers: [],
   providers: [],
