@@ -17,7 +17,19 @@ export class SujetoDto {
   ci?: string;
 
   @ApiProperty({ required: false })
+  complemento?: string;
+
+  @ApiProperty({ required: false })
   placa?: string;
+
+  @ApiProperty({ required: false })
+  carguio_combustible?: boolean;
+
+  @ApiProperty({ required: false })
+  fechaini?: Date;
+
+  @ApiProperty({ required: false })
+  fechafin?: Date;
 }
 
 export class SistemasDto {
@@ -29,6 +41,9 @@ export class SistemasDto {
 
   @ApiProperty()
   itv: boolean;
+
+  @ApiProperty()
+  anh: boolean;
 }
 
 export class SearchRequestDto {
@@ -38,8 +53,8 @@ export class SearchRequestDto {
   @ApiProperty()
   investigador: string;
 
-  @ApiProperty({ type: [SujetoDto] })
-  sujetos: SujetoDto[];
+  @ApiProperty({ type: SujetoDto })
+  sujeto: SujetoDto;
 
   @ApiProperty({ type: SistemasDto })
   sistemas: SistemasDto;

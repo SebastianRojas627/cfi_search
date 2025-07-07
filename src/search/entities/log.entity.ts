@@ -27,6 +27,9 @@ export class Log {
   ci: string;
 
   @Column({ nullable: true })
+  complemento: string;
+
+  @Column({ nullable: true })
   placa: string;
 
   @Column()

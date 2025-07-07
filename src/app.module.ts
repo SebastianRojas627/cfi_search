@@ -2,10 +2,17 @@ import { Module } from '@nestjs/common';
 import { SearchModule } from './search/search.module';
 import { ConfigModule } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { SegipModule } from './services/segip/segip.module';
+import externalApisConfig from './config/external-apis.config';
+import { ItvModule } from './services/itv/itv.module';
+import { SinarapModule } from './services/sinarap/sinarap.module';
 
 @Module({
   imports: [
-    ConfigModule.forRoot({ isGlobal: true }),
+    ConfigModule.forRoot({ 
+      isGlobal: true,
+      load: [externalApisConfig], 
+    }),
 
     TypeOrmModule.forRoot({
       type: 'postgres',
@@ -19,6 +26,9 @@ import { TypeOrmModule } from '@nestjs/typeorm';
     }),
 
     SearchModule,
+    SegipModule,
+    ItvModule,
+    SinarapModule
   ],
   controllers: [],
   providers: [],

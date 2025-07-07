@@ -4,41 +4,136 @@ import { Log } from './entities/log.entity';
 import { Repository } from 'typeorm';
 import { SearchRequestDto, SujetoDto } from './dto/create-search.dto';
 import { v4 as uuidv4 } from 'uuid';
+import { segip, itv, sinarap, anhVehiculo, anhCargaCombustible } from '../mock';
+import { SegipService } from 'src/services/segip/segip.service';
+import { SinarapService } from 'src/services/sinarap/sinarap.service';
+import { ItvService } from 'src/services/itv/itv.service';
+import { SegipBody } from 'src/services/segip/segip.interface';
+import { ItvBody } from 'src/services/itv/itv.interface';
+import { AntecedenteNormalizado, RespuestaSinarap, RespuestaSinarapNormalizada, SinarapBody } from 'src/services/sinarap/sinarap.interface';
 
 @Injectable()
 export class SearchService {
   constructor(
     @InjectRepository(Log)
     private readonly logRepo: Repository<Log>,
+    private readonly segipService: SegipService,
+    private readonly sinarapService: SinarapService,
+    private readonly itvService: ItvService,
   ) {}
 
   async processSearch(dto: SearchRequestDto) {
-    const results: any[] = [];
+    const { sujeto, sistemas, numero_caso } = dto;
+    const { tipo } = sujeto;
 
-    for (const sujeto of dto.sujetos) {
-      const result: any = { tipo: sujeto.tipo, placa: sujeto.placa, ci: sujeto.ci };
+    const result: any = {
+      tipo,
+      ...(sujeto.tipo === 'persona'
+        ? { ci: sujeto.ci }
+        : { placa: sujeto.placa }),
+    };
 
-      if (sujeto.tipo === 'persona') {
-        if (dto.sistemas.segip) {
-          result.segip = this.getMockSegip(sujeto);
-          await this.saveLog(dto, sujeto, 'SEGIP');
+    if (tipo === 'persona') {
+      if (sistemas.segip) {
+        try {
+          const segip: SegipBody = {
+            ced: sujeto.ci!,
+            com: '',
+            nom: '',
+            pat: '',
+            mat: ''
+          }
+          const segipData = await this.segipService.searchSegip(segip)
+          if (!segipData) throw new Error('No SEGIP records found');
+          result.segip = segipData;
+        } catch (err) {
+          console.log(err)
+          result.segip = {
+            message: 'No SEGIP records found for this person.',
+          };
         }
-        if (dto.sistemas.sinarap) {
-          result.sinarap = this.getMockSinarap(sujeto);
-          await this.saveLog(dto, sujeto, 'SINARAP');
+        await this.saveLog(dto, sujeto, 'SEGIP');
+      }
+
+      if (sistemas.sinarap) {
+        try {
+          const sinarap: SinarapBody = {
+            numero_documento: sujeto.ci!,
+            complemento: ''
+          }
+
+          const sinarapData = await this.sinarapService.searchSinarap(sinarap);
+          console.log(sinarapData)
+          if (!sinarapData) throw new Error('No SINARAP records found');
+          result.sinarap = this.transformSinarapApiResponse(sinarapData.data);
+        } catch (err) {
+          result.sinarap = {
+            message: 'No SINARAP records found for this person.',
+          };
         }
-      } else if (sujeto.tipo === 'vehiculo' && dto.sistemas.itv) {
-        result.itv = this.getMockITV(sujeto);
+        await this.saveLog(dto, sujeto, 'SINARAP');
+      }
+    } else if (tipo === 'vehiculo') {
+      if (sistemas.itv) {
+        try {
+          const itv: ItvBody = {
+            dato: sujeto.placa!
+          }
+          const itvData = await this.itvService.searchItv(itv)
+          if (!itvData) throw new Error('No ITV records found');
+          result.itv = itvData;
+        } catch (err) {
+          console.log(err)
+          result.itv = { message: 'No ITV records found for this vehicle.' };
+        }
         await this.saveLog(dto, sujeto, 'ITV');
       }
 
-      results.push(result);
+      if (sistemas.anh) {
+        result.anh = {};
+
+        if (sujeto.carguio_combustible) {
+          try {
+            const anhCargas = anhCargaCombustible.find(
+              (item) => item.placa === sujeto.placa,
+            );
+            if (!anhCargas) throw new Error('No ANH records found');
+            result.anh.cargas_combustible = anhCargas;
+          } catch (err) {
+            console.log(err);
+            result.anh = {
+              message: 'No ANH records found for this vehicle.',
+            };
+          }
+          await this.saveLog(dto, sujeto, 'ANH');
+        } else {
+          try {
+            const anhVehicle = anhVehiculo.find(
+              (item) => item.placa === sujeto.placa,
+            );
+            if (!anhVehicle) throw new Error('No ANH records found');
+            result.anh.vehiculo = anhVehicle;
+          } catch (err) {
+            result.anh = {
+              message: 'No ANH records found for this vehicle.',
+            };
+          }
+          await this.saveLog(dto, sujeto, 'ANH');
+        }
+      }
     }
 
-    return results;
+    return {
+      numero_caso,
+      result,
+    };
   }
 
-  private async saveLog(dto: SearchRequestDto, sujeto: SujetoDto, sistema: string) {
+  private async saveLog(
+    dto: SearchRequestDto,
+    sujeto: SujetoDto,
+    sistema: string,
+  ) {
     const log = this.logRepo.create({
       log_id: uuidv4(),
       numero_caso: dto.numero_caso,
@@ -54,53 +149,31 @@ export class SearchService {
     await this.logRepo.save(log);
   }
 
-  // MOCKS
-  private getMockSegip(sujeto: SujetoDto) {
-    return {
-      Nombres: sujeto.nombres ?? 'JHERY',
-      PrimerApellido: sujeto.apellido_paterno ?? 'CHAVEZ',
-      SegundoApellido: sujeto.apellido_materno ?? 'APAZA',
-      NumeroDocumento: sujeto.ci ?? '10691042',
-      Genero: 'MASCULINO',
-      FechaNacimiento: '11/11/2000',
-      Nacionalidad: 'BOLIVIANO',
-    };
+  private transformSinarapApiResponse(sinarapResponse: RespuestaSinarap): RespuestaSinarapNormalizada {
+
+  const antecedentes: AntecedenteNormalizado[] = [];
+
+  for (const fuente of ['FELCC', 'FELCN', 'TRANSITO'] as const) {
+    const lista = sinarapResponse.antecedentes[fuente] || [];
+    for (const item of lista) {
+      antecedentes.push({
+        fuente,
+        hecho: item.hecho,
+        detalle: item.detalle,
+        fecha: item.fecha,
+      });
+    }
   }
 
-  private getMockSinarap(sujeto: SujetoDto) {
-    return {
-      TRANSITO: 'NO SE ENCONTRARON REGISTROS',
-      FELCC: [{
-        Nombre: `${sujeto.nombres} ${sujeto.apellido_paterno} ${sujeto.apellido_materno}`,
-        CI: sujeto.ci,
-        FechaNacimiento: '13/08/1973',
-        Caso: '52600',
-        Fecha: '10/08/2000',
-        Hecho: 'estafa y otros',
-        Juzgado: 'P. J. GTIAS.',
-      }],
-      FELCN: 'NO SE ENCONTRARON REGISTROS',
-      FELCV: 'NO SE ENCONTRARON REGISTROS',
-      DIPROVE: 'NO SE ENCONTRARON REGISTROS',
-    };
-  }
-
-  private getMockITV(sujeto: SujetoDto) {
-    return {
-      datos_tecnicos: {
-        placa: sujeto.placa,
-        marca: 'TOYOTA',
-        modelo: '2008',
-        industria: 'JAPON',
-        clase: 'VAGONETA',
-        servicio: 'PARTICULAR',
-        tipo_vehiculo: 'LAND CRUISER PRADO',
-        color: 'ROJO OSCURO MICA',
-        cilindrada: '2694',
-        chasis: 'JTEBL29J905088245',
-        motor: '2TR0515813',
-        radicatoria: 'LA PAZ',
-      },
-    };
-  }
+  return {
+    numero_documento: sinarapResponse.numero_documento,
+    complemento: sinarapResponse.complemento,
+    nombres: sinarapResponse.nombres,
+    paterno: sinarapResponse.paterno,
+    materno: sinarapResponse.materno,
+    fecha_nacimiento: sinarapResponse.fecha_nacimiento,
+    antecedentes,
+  };
 }
+}
+
