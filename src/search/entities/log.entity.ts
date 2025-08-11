@@ -6,22 +6,10 @@ export class Log {
   log_id: string;
 
   @Column()
-  numero_caso: number;
-
-  @Column()
-  investigador: string;
+  solicitud_informacion_id: string;
 
   @Column()
   tipo: string;
-
-  @Column({ nullable: true })
-  nombres: string;
-
-  @Column({ nullable: true })
-  apellido_paterno: string;
-
-  @Column({ nullable: true })
-  apellido_materno: string;
 
   @Column({ nullable: true })
   ci: string;

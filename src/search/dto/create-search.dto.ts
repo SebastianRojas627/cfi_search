@@ -5,15 +5,6 @@ export class SujetoDto {
   tipo: 'vehiculo' | 'persona';
 
   @ApiProperty({ required: false })
-  nombres?: string;
-
-  @ApiProperty({ required: false })
-  apellido_paterno?: string;
-
-  @ApiProperty({ required: false })
-  apellido_materno?: string;
-
-  @ApiProperty({ required: false })
   ci?: string;
 
   @ApiProperty({ required: false })
@@ -22,6 +13,7 @@ export class SujetoDto {
   @ApiProperty({ required: false })
   placa?: string;
 
+  /*
   @ApiProperty({ required: false })
   carguio_combustible?: boolean;
 
@@ -30,6 +22,7 @@ export class SujetoDto {
 
   @ApiProperty({ required: false })
   fechafin?: Date;
+  */
 }
 
 export class SistemasDto {
@@ -42,16 +35,13 @@ export class SistemasDto {
   @ApiProperty()
   itv: boolean;
 
-  @ApiProperty()
-  anh: boolean;
+  // @ApiProperty()
+  // anh: boolean;
 }
 
 export class SearchRequestDto {
   @ApiProperty()
-  numero_caso: number;
-
-  @ApiProperty()
-  investigador: string;
+  solicitud_informacion_id: string;
 
   @ApiProperty({ type: SujetoDto })
   sujeto: SujetoDto;

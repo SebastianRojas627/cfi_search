@@ -10,7 +10,12 @@ import { SinarapService } from 'src/services/sinarap/sinarap.service';
 import { ItvService } from 'src/services/itv/itv.service';
 import { SegipBody } from 'src/services/segip/segip.interface';
 import { ItvBody } from 'src/services/itv/itv.interface';
-import { AntecedenteNormalizado, RespuestaSinarap, RespuestaSinarapNormalizada, SinarapBody } from 'src/services/sinarap/sinarap.interface';
+import {
+  AntecedenteNormalizado,
+  RespuestaSinarap,
+  RespuestaSinarapNormalizada,
+  SinarapBody,
+} from 'src/services/sinarap/sinarap.interface';
 
 @Injectable()
 export class SearchService {
@@ -23,7 +28,7 @@ export class SearchService {
   ) {}
 
   async processSearch(dto: SearchRequestDto) {
-    const { sujeto, sistemas, numero_caso } = dto;
+    const { sujeto, sistemas, solicitud_informacion_id } = dto;
     const { tipo } = sujeto;
 
     const result: any = {
@@ -41,15 +46,15 @@ export class SearchService {
             com: '',
             nom: '',
             pat: '',
-            mat: ''
-          }
-          const segipData = await this.segipService.searchSegip(segip)
-          if (!segipData) throw new Error('No SEGIP records found');
+            mat: '',
+          };
+          const segipData = await this.segipService.searchSegip(segip);
+          if (!segipData) throw new Error('No se encontraros registros SEGIP de esta persona');
           result.segip = segipData;
         } catch (err) {
-          console.log(err)
+          console.log(err);
           result.segip = {
-            message: 'No SEGIP records found for this person.',
+            message: `No se encontraron registros SEGIP de la persona con CI: ${sujeto.ci}`,
           };
         }
         await this.saveLog(dto, sujeto, 'SEGIP');
@@ -59,16 +64,15 @@ export class SearchService {
         try {
           const sinarap: SinarapBody = {
             numero_documento: sujeto.ci!,
-            complemento: ''
-          }
+            complemento: '',
+          };
 
           const sinarapData = await this.sinarapService.searchSinarap(sinarap);
-          console.log(sinarapData)
-          if (!sinarapData) throw new Error('No SINARAP records found');
+          if (!sinarapData) throw new Error('No se encontraros registros SINARAP de esta persona');
           result.sinarap = this.transformSinarapApiResponse(sinarapData.data);
         } catch (err) {
           result.sinarap = {
-            message: 'No SINARAP records found for this person.',
+            message: `No se encontraron registros SINARAP de la persona con CI: ${sujeto.ci}`,
           };
         }
         await this.saveLog(dto, sujeto, 'SINARAP');
@@ -77,18 +81,19 @@ export class SearchService {
       if (sistemas.itv) {
         try {
           const itv: ItvBody = {
-            dato: sujeto.placa!
-          }
-          const itvData = await this.itvService.searchItv(itv)
-          if (!itvData) throw new Error('No ITV records found');
+            dato: sujeto.placa!,
+          };
+          const itvData = await this.itvService.searchItv(itv);
+          if (!itvData) throw new Error('No se encontraros registros ITV de este vehiculo');
           result.itv = itvData;
         } catch (err) {
-          console.log(err)
-          result.itv = { message: 'No ITV records found for this vehicle.' };
+          console.log(err);
+          result.itv = { message: `No se encontraron registros ITV del vehiculo con placa: ${sujeto.placa}` };
         }
         await this.saveLog(dto, sujeto, 'ITV');
       }
 
+      /*
       if (sistemas.anh) {
         result.anh = {};
 
@@ -121,10 +126,11 @@ export class SearchService {
           await this.saveLog(dto, sujeto, 'ANH');
         }
       }
+        */
     }
 
     return {
-      numero_caso,
+      solicitud_informacion_id,
       result,
     };
   }
@@ -136,12 +142,8 @@ export class SearchService {
   ) {
     const log = this.logRepo.create({
       log_id: uuidv4(),
-      numero_caso: dto.numero_caso,
-      investigador: dto.investigador,
+      solicitud_informacion_id: dto.solicitud_informacion_id,
       tipo: sujeto.tipo,
-      nombres: sujeto.nombres,
-      apellido_paterno: sujeto.apellido_paterno,
-      apellido_materno: sujeto.apellido_materno,
       ci: sujeto.ci,
       placa: sujeto.placa,
       sistema,
@@ -149,31 +151,31 @@ export class SearchService {
     await this.logRepo.save(log);
   }
 
-  private transformSinarapApiResponse(sinarapResponse: RespuestaSinarap): RespuestaSinarapNormalizada {
+  private transformSinarapApiResponse(
+    sinarapResponse: RespuestaSinarap,
+  ): RespuestaSinarapNormalizada {
+    const antecedentes: AntecedenteNormalizado[] = [];
 
-  const antecedentes: AntecedenteNormalizado[] = [];
-
-  for (const fuente of ['FELCC', 'FELCN', 'TRANSITO'] as const) {
-    const lista = sinarapResponse.antecedentes[fuente] || [];
-    for (const item of lista) {
-      antecedentes.push({
-        fuente,
-        hecho: item.hecho,
-        detalle: item.detalle,
-        fecha: item.fecha,
-      });
+    for (const fuente of ['FELCC', 'FELCN', 'TRANSITO'] as const) {
+      const lista = sinarapResponse.antecedentes[fuente] || [];
+      for (const item of lista) {
+        antecedentes.push({
+          fuente,
+          hecho: item.hecho,
+          detalle: item.detalle,
+          fecha: item.fecha,
+        });
+      }
     }
+
+    return {
+      numero_documento: sinarapResponse.numero_documento,
+      complemento: sinarapResponse.complemento,
+      nombres: sinarapResponse.nombres,
+      paterno: sinarapResponse.paterno,
+      materno: sinarapResponse.materno,
+      fecha_nacimiento: sinarapResponse.fecha_nacimiento,
+      antecedentes,
+    };
   }
-
-  return {
-    numero_documento: sinarapResponse.numero_documento,
-    complemento: sinarapResponse.complemento,
-    nombres: sinarapResponse.nombres,
-    paterno: sinarapResponse.paterno,
-    materno: sinarapResponse.materno,
-    fecha_nacimiento: sinarapResponse.fecha_nacimiento,
-    antecedentes,
-  };
 }
-}
-
