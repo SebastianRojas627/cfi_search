@@ -7,8 +7,8 @@ import { SinarapService } from './sinarap.service';
 export class SinarapController {
   constructor(private readonly sinarapService: SinarapService) {}
 
-  // @Post()
-  // create(@Body() body: SinarapBody) {
-  //   return this.sinarapService.searchSinarap(body);
-  // }
+  @Post()
+  create(@Body() body: SinarapBody) {
+    return this.sinarapService.searchSinarap(body);
+  }
 }

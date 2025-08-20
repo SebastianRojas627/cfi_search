@@ -6,8 +6,8 @@ import { ItvBody } from './itv.interface';
 export class ItvController {
   constructor(private readonly itvService: ItvService) {}
 
-  // @Post()
-  // create(@Body() body: ItvBody) {
-  //   return this.itvService.searchItv(body);
-  // }
+   @Post()
+   create(@Body() body: ItvBody) {
+     return this.itvService.searchItv(body);
+   }
 }

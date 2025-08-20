@@ -6,6 +6,7 @@ import { SegipModule } from './services/segip/segip.module';
 import externalApisConfig from './config/external-apis.config';
 import { ItvModule } from './services/itv/itv.module';
 import { SinarapModule } from './services/sinarap/sinarap.module';
+import { CoreModule } from './core/core.module';
 
 @Module({
   imports: [
@@ -28,7 +29,8 @@ import { SinarapModule } from './services/sinarap/sinarap.module';
     SearchModule,
     SegipModule,
     ItvModule,
-    SinarapModule
+    SinarapModule,
+    CoreModule
   ],
   controllers: [],
   providers: [],

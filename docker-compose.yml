@@ -1,0 +1,43 @@
+services:
+  postgres:
+    image: postgres:15
+    container_name: postgres
+    ports:
+    - "5432:5432"
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: search
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    networks:
+      - nexus
+
+  nexus:
+    image: sebastian627/nexus_queries:latest
+    container_name: nexus
+    ports:
+      - "5000:5000"
+    depends_on:
+      - postgres
+    environment:
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USERNAME: postgres
+      DB_PASSWORD: password
+      DB_NAME: search
+      PORT: 5000
+      API_AUTHENTICATION_URL: https://kerveros-api-dev.policia.bo/api
+      SEGIP_URL: https://services.policia.bo/personas
+      SEGIP_TOKEN: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJjaGpHNzR6VWJCYmM5OXNHcUpPUElxUk80YkNHNHVIaiJ9.qJKTRDEW3J_3GKdcaBS0JcEb8-OuSBPKdnnoJ1-as3U
+      ITV_URL: https://services.policia.bo/v1/vehiculo
+      ITV_TOKEN: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6ImRudHQiLCJpc3MiOiJaOEFkbnNaVllQQkdRMjRSMnRzN05abkFXZXdmbHdKUSJ9.eAevTHUoe66B5AjFqCUGdAqj2REvwEQ78CMZal3hr44
+      SINARAP_URL: http://172.16.10.95:3000/api/antecedentes/consultar
+    networks:
+      - nexus
+
+volumes:
+  pgdata:
+
+networks:
+  nexus:

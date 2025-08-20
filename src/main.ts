@@ -14,6 +14,15 @@ async function bootstrap() {
 
   const config = new DocumentBuilder()
     .setTitle('Nexus')
+    .addBearerAuth(
+      {
+        type: 'http',
+        scheme: 'bearer',
+        bearerFormat: 'token',
+        in: 'header',
+      },
+      'access-token',
+    )
     .setDescription('Documentacion para el servicio integrado de busqueda')
     .setVersion('1.0')
     .build();

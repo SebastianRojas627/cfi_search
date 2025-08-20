@@ -18,8 +18,8 @@ RUN yarn install --production
 
 COPY --from=builder /app/dist ./dist
 
-ENV PORT=5004
+ENV PORT=5000
 
-EXPOSE 5004
+EXPOSE 5000
 
 CMD ["node", "dist/main"]

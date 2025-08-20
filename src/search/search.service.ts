@@ -25,7 +25,7 @@ export class SearchService {
     private readonly segipService: SegipService,
     private readonly sinarapService: SinarapService,
     private readonly itvService: ItvService,
-  ) {}
+  ) { }
 
   async processSearch(dto: SearchRequestDto) {
     const { sujeto, sistemas, solicitud_informacion_id } = dto;
@@ -177,5 +177,27 @@ export class SearchService {
       fecha_nacimiento: sinarapResponse.fecha_nacimiento,
       antecedentes,
     };
+  }
+
+  async personaSearch(body: SegipBody) {
+
+    const { ced, com } = body;
+
+    const sinarapBody: SinarapBody = {
+      numero_documento: ced,
+      complemento: com
+    }
+
+    return {
+      segip: await this.segipService.consultaSegip(body),
+      sinarap: await this.sinarapService.searchSinarap(sinarapBody)
+    }
+  }
+
+  async vehiculoSearch(body: ItvBody) {
+    const { dato } = body;
+    return {
+      itv: await this.itvService.consultaItv(body)
+    }
   }
 }
