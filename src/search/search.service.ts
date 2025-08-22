@@ -44,9 +44,6 @@ export class SearchService {
           const segip: SegipBody = {
             ced: sujeto.ci!,
             com: '',
-            nom: '',
-            pat: '',
-            mat: '',
           };
           const segipData = await this.segipService.searchSegip(segip);
           if (!segipData) throw new Error('No se encontraros registros SEGIP de esta persona');

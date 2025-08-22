@@ -1,14 +1,20 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class SegipBody {
-  @ApiProperty()
+  @ApiProperty({ default: '' })
   ced: string;
-  @ApiProperty()
+
+  @ApiProperty({ default: '' })
   com: string;
-  @ApiProperty()
+
+  /*
+  @ApiProperty({ default: '' })
   nom: string;
-  @ApiProperty()
+
+  @ApiProperty({ default: '' })
   pat: string;
-  @ApiProperty()
+
+  @ApiProperty({ default: '' })
   mat: string;
+  */
 }

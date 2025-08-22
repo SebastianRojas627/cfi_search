@@ -20,11 +20,17 @@ export class SegipService {
 
   async searchSegip(body: SegipBody): Promise<SegipEntity> {
     const { url, token } = this.config.get('segip');
+    const fullSegipSearchBody = {
+      ...body,
+      nom: '',
+      pat: '',
+      mat: '',
+    }
 
     try {
       const response = await this.httpService.axiosRef.post(
         url,
-        body,
+        fullSegipSearchBody,
         {
           headers: { Authorization: `Bearer ${token}` },
         },
@@ -40,17 +46,24 @@ export class SegipService {
   private async actualizarSegip(body: SegipBody): Promise<SegipEntity> {
     const { ced } = body;
     const respuestaSegip = await this.searchSegip(body)
-    const parsedDate = normalizeDate(respuestaSegip.FechaNacimiento.toString())
+    const parsedDate = respuestaSegip.FechaNacimiento ? normalizeDate(respuestaSegip.FechaNacimiento.toString()) : null
     if (respuestaSegip) {
-      await this.segipRepository.update(
-        { NumeroDocumento: ced }, {
-        ...respuestaSegip,
-        FechaNacimiento: String(parsedDate),
-        fecha_actualizacion: new Date()
+      try {
+        await this.segipRepository.update(
+          { NumeroDocumento: ced }, {
+          ...respuestaSegip,
+          FechaNacimiento: String(parsedDate),
+          fecha_actualizacion: new Date()
+        }
+        )
+        logger.log(`Consulta a SEGIP, actualizacion a persona con CI: ${ced}`)
+        return (await this.findOneByCI(body))!
       }
-      )
-      logger.log(`Consulta a SEGIP, actualizacion a persona con CI: ${ced}`)
-      return (await this.findOneByCI(body))!
+      catch (error) {
+        console.log(`Error en la consulta a la persona con CI: ${ced}`);
+        console.error(error);
+        return respuestaSegip;
+      }
     } else {
       throw new NotFoundException(`No se obtuvieron resultados para persona con CI: ${ced}`)
     }
@@ -59,16 +72,23 @@ export class SegipService {
   private async registrarSegip(body: SegipBody): Promise<SegipEntity> {
     const { ced } = body;
     const respuestaSegip = await this.searchSegip(body);
-    const parsedDate = normalizeDate(respuestaSegip.FechaNacimiento.toString())
+    const parsedDate = respuestaSegip.FechaNacimiento ? normalizeDate(respuestaSegip.FechaNacimiento.toString()) : null
     if (respuestaSegip) {
-      const guardarSegip = this.segipRepository.create({
-        ...respuestaSegip,
-        FechaNacimiento: String(parsedDate),
-        fecha_creacion: new Date(),
-        fecha_actualizacion: new Date()
-      })
-      logger.log(`Consulta a SEGIP, se registra nueva persona con CI: ${ced}`)
-      return await this.segipRepository.save(guardarSegip)
+      try {
+        const guardarSegip = this.segipRepository.create({
+          ...respuestaSegip,
+          FechaNacimiento: String(parsedDate),
+          fecha_creacion: new Date(),
+          fecha_actualizacion: new Date()
+        })
+        logger.log(`Consulta a SEGIP, se registra nueva persona con CI: ${ced}`)
+        return await this.segipRepository.save(guardarSegip)
+      }
+      catch (error) {
+        console.log(`Error en la consulta a la persona con CI: ${ced}`);
+        console.error(error);
+        return respuestaSegip;
+      }
     } else {
       throw new NotFoundException(`No se obtuvieron resultados para persona con CI: ${ced}`)
     }

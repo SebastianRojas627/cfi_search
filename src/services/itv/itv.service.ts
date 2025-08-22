@@ -45,49 +45,56 @@ export class ItvService {
     const { dato } = body;
     const respuestaItv = await this.searchItv(body);
     if (respuestaItv && oldRespuestaItv) {
-      const { personas } = respuestaItv;
-      const oldPersonas = oldRespuestaItv.personas;
-      oldRespuestaItv.datos_tecnicos.fotografia = respuestaItv.datos_tecnicos.fotografia;
-      oldRespuestaItv.fecha_actualizacion = new Date();
+      try {
+        const { personas } = respuestaItv;
+        const oldPersonas = oldRespuestaItv.personas;
+        oldRespuestaItv.datos_tecnicos.fotografia = respuestaItv.datos_tecnicos.fotografia;
+        oldRespuestaItv.fecha_actualizacion = new Date();
 
 
-      const personasExistentesDB = oldPersonas.map((persona) => {
-        return persona.gestion
-      })
+        const personasExistentesDB = oldPersonas.map((persona) => {
+          return persona.gestion
+        })
 
-      const newPersonas = personas.filter((persona) => !(personasExistentesDB.includes(persona.gestion))).map((persona) => {
-        const parsedDate = persona.fecha_nacimiento ? normalizeDate(persona.fecha_nacimiento.toString()) : null;
-        return {
-          ...persona,
-          fecha_nacimiento: parsedDate ? new Date(parsedDate) : null,
-        }
-      })
-
-      /*
-      personas.forEach(async (persona) => {
-        const { nro_documento } = persona;
-        const parsedDate = persona.fecha_nacimiento ? normalizeDate(persona.fecha_nacimiento.toString()) : null;
-        if (personasExistentesDB.includes(nro_documento)) {
-          await this.ownerItvRepository.update(
-            { nro_documento }, { ...persona, fecha_nacimiento: String(parsedDate) }
-          )
-        } else {
-          const newOwner = this.ownerItvRepository.create({
+        const newPersonas = personas.filter((persona) => !(personasExistentesDB.includes(persona.gestion))).map((persona) => {
+          const parsedDate = persona.fecha_nacimiento ? normalizeDate(persona.fecha_nacimiento.toString()) : null;
+          return {
             ...persona,
-            fecha_nacimiento: parsedDate ? String(parsedDate) : null,
-            owner_itv_id: respuesta_id
-          })
-          await this.ownerItvRepository.save(newOwner);
-        }
-      })
-        */
-      const updatedPersonas = [...oldPersonas, ...newPersonas];
-      oldRespuestaItv.personas = updatedPersonas;
-      await this.itvRepository.save(oldRespuestaItv);
+            fecha_nacimiento: parsedDate ? new Date(parsedDate) : null,
+          }
+        })
 
-      logger.log(`Consulta a ITV, actualizacion del vehiculo con placa: ${dato}`)
-      const itvActualizado = await this.findOneByPlaca(body)
-      return itvActualizado!
+        /*
+        personas.forEach(async (persona) => {
+          const { nro_documento } = persona;
+          const parsedDate = persona.fecha_nacimiento ? normalizeDate(persona.fecha_nacimiento.toString()) : null;
+          if (personasExistentesDB.includes(nro_documento)) {
+            await this.ownerItvRepository.update(
+              { nro_documento }, { ...persona, fecha_nacimiento: String(parsedDate) }
+            )
+          } else {
+            const newOwner = this.ownerItvRepository.create({
+              ...persona,
+              fecha_nacimiento: parsedDate ? String(parsedDate) : null,
+              owner_itv_id: respuesta_id
+            })
+            await this.ownerItvRepository.save(newOwner);
+          }
+        })
+          */
+        const updatedPersonas = [...oldPersonas, ...newPersonas];
+        oldRespuestaItv.personas = updatedPersonas;
+        await this.itvRepository.save(oldRespuestaItv);
+
+        logger.log(`Consulta a ITV, actualizacion del vehiculo con placa: ${dato}`)
+        const itvActualizado = await this.findOneByPlaca(body)
+        return itvActualizado!
+      }
+      catch (error) {
+        console.log(`Error en la consulta al vehiculo: ${body}`);
+        console.error(error);
+        return respuestaItv;
+      }
 
     } else {
       throw new NotFoundException(`No se obtuvieron resultados para vehiculo con placa: ${dato}`)
@@ -98,23 +105,30 @@ export class ItvService {
     const { dato } = body;
     const respuestaItv = await this.searchItv(body);
     if (respuestaItv) {
-      const { personas, ...datos_tecnicos } = respuestaItv;
-      const updatedPersonas = personas.map((persona) => {
-        const parsedDate = persona.fecha_nacimiento ? normalizeDate(persona.fecha_nacimiento.toString()) : null;
-        return {
-          ...persona,
-          fecha_nacimiento: parsedDate ? String(parsedDate) : null,
-        }
-      })
+      try {
+        const { personas, ...datos_tecnicos } = respuestaItv;
+        const updatedPersonas = personas.map((persona) => {
+          const parsedDate = persona.fecha_nacimiento ? normalizeDate(persona.fecha_nacimiento.toString()) : null;
+          return {
+            ...persona,
+            fecha_nacimiento: parsedDate ? String(parsedDate) : null,
+          }
+        })
 
-      const guardarItv = await this.itvRepository.create({
-        ...datos_tecnicos,
-        personas: updatedPersonas,
-        fecha_creacion: new Date(),
-        fecha_actualizacion: new Date()
-      });
-      logger.log(`Consulta a ITV, se registro nuevo vehiculo con placa: ${dato}`)
-      return await this.itvRepository.save(guardarItv);
+        const guardarItv = await this.itvRepository.create({
+          ...datos_tecnicos,
+          personas: updatedPersonas,
+          fecha_creacion: new Date(),
+          fecha_actualizacion: new Date()
+        });
+        logger.log(`Consulta a ITV, se registro nuevo vehiculo con placa: ${dato}`)
+        return await this.itvRepository.save(guardarItv);
+      }
+      catch (error) {
+        console.log(`Error en la consulta al vehiculo: ${body}`);
+        console.error(error);
+        return respuestaItv;
+      }
     } else {
       throw new NotFoundException(`No se obtuvieron resultados para vehiculo con placa: ${dato}`)
     }
